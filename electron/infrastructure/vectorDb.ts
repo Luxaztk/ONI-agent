@@ -1,12 +1,16 @@
 import { MemoryVectorStore } from "@langchain/classic/vectorstores/memory";
 import { OllamaEmbeddings } from "@langchain/ollama";
+import { OllamaManager } from "../modules/ai/OllamaManager";
 import fs from "fs";
 import path from "path";
 
-const embeddings = new OllamaEmbeddings({
-  model: "nomic-embed-text",
-  baseUrl: "http://localhost:11434",
-});
+const getEmbeddings = () => {
+  const port = process.env.OLLAMA_API_PORT || OllamaManager.getPort();
+  return new OllamaEmbeddings({
+    model: "nomic-embed-text",
+    baseUrl: `http://127.0.0.1:${port}`,
+  });
+};
 
 export const getDbPath = async () => {
   if (process.versions.electron) {
@@ -44,7 +48,7 @@ export const saveVectorStore = async (store: MemoryVectorStore) => {
 export const getVectorStore = async (): Promise<MemoryVectorStore> => {
   if (storeInstance) return storeInstance;
 
-  storeInstance = new MemoryVectorStore(embeddings);
+  storeInstance = new MemoryVectorStore(getEmbeddings());
   const dbPath = await getDbPath();
   
   if (fs.existsSync(dbPath)) {

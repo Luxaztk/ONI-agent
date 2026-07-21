@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { getDbPath, getMetaPath } from '../../infrastructure/vectorDb';
-import { runIngestion } from '../../workers/ingest';
+import { getDbPath, getMetaPath } from '@electron/infrastructure/vectorDb';
+import { runIngestion } from '@electron/workers/ingest';
 
 const WIKI_API = "https://oxygennotincluded.wiki.gg/api.php?action=query&meta=siteinfo&siprop=statistics&format=json";
 

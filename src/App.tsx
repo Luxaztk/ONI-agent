@@ -1,12 +1,19 @@
-import './components/Chat.css';
-import { ChatProvider } from './context/ChatContext';
-import { Chat } from './components/Chat';
+import { useState } from 'react';
+import Layout from './components/Layout';
+import { ThemeProvider } from './context/ThemeContext';
+import { LoadingScreen } from './components/LoadingScreen/LoadingScreen';
 
 function App() {
+  const [isReady, setIsReady] = useState(false);
+
   return (
-    <ChatProvider>
-      <Chat />
-    </ChatProvider>
+    <ThemeProvider>
+      {!isReady ? (
+        <LoadingScreen onReady={() => setIsReady(true)} />
+      ) : (
+        <Layout />
+      )}
+    </ThemeProvider>
   );
 }
 

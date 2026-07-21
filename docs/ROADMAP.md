@@ -14,9 +14,9 @@
 - [x] (Dữ liệu) Viết script đọc file JSON thô, tạo vector bằng `nomic-embed-text` qua Ollama và lưu xuống ổ cứng.
 
 ## Phase 3: Giao diện Chat (Renderer Process) (Tuần 3)
-- [ ] Xây dựng UI Component (Sidebar, Chat Area, Input) bằng React.
-- [ ] Gửi request từ UI (Renderer) lên AI Engine (Main) thông qua `ipcRenderer`.
-- [ ] Xử lý Streaming Text (chữ hiện dần dần) qua IPC event.
+- [x] Xây dựng UI Component (Sidebar, Chat Area, Input) bằng React.
+- [x] Gửi request từ UI (Renderer) lên AI Engine (Main) thông qua `ipcRenderer`.
+- [x] Xử lý Streaming Text (chữ hiện dần dần) qua IPC event.
 - [ ] Quản lý trạng thái bằng React Context.
 
 ## Phase 4: Cô lập Môi trường & Đóng gói (Tuần 4)

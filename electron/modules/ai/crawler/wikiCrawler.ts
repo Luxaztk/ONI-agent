@@ -43,15 +43,11 @@ export const crawlWikiPage = async (url: string): Promise<Document[]> => {
   const html = await response.text();
   const $ = cheerio.load(html);
 
-  // Xóa các phần rác để tránh nhiễu dữ liệu cho LLM
-  $('script, style, nav, footer, #mw-navigation, .printfooter, .catlinks, .navbox').remove();
-
   const title = $('#firstHeading').text().trim();
-  const cleanText = $('#mw-content-text').text().replace(/\s+/g, ' ').trim();
 
   return [
     new Document({
-      pageContent: cleanText,
+      pageContent: html,
       metadata: { source: url, title, type: "wiki_guide" },
     }),
   ];

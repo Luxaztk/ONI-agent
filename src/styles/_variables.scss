@@ -1,0 +1,54 @@
+// src/styles/_variables.scss
+
+:root {
+  // Light Theme (mặc định)
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9f9f9;
+  --bg-hover: #ececec;
+  
+  --text-primary: #0d0d0d;
+  --text-secondary: #6e6e80;
+  
+  --border-color: #e5e5e5;
+  --accent-color: #10a37f; // Màu xanh giống ChatGPT
+  --accent-hover: #1a7f64;
+
+  --sidebar-bg: #f9f9f9;
+  --sidebar-text: #0d0d0d;
+  
+  --msg-user-bg: #f3f3f3;
+  --msg-ai-bg: #ffffff;
+  
+  --input-bg: #ffffff;
+  --input-border: #e5e5e5;
+  --input-focus: #10a37f;
+}
+
+[data-theme='dark'] {
+  // Dark Theme
+  --bg-primary: #000000;
+  --bg-secondary: #111111;
+  --bg-hover: #222222;
+  
+  --text-primary: #ffffff;
+  --text-secondary: #cccccc;
+  
+  --border-color: #333333;
+  --accent-color: #10a37f;
+  --accent-hover: #1a7f64;
+
+  --sidebar-bg: #000000;
+  --sidebar-text: #ffffff;
+  
+  --msg-user-bg: #2f2f2f;
+  --msg-ai-bg: #000000;
+  
+  --input-bg: #111111;
+  --input-border: #333333;
+  --input-focus: #10a37f;
+}
+
+// Các kích thước
+$sidebar-width: 260px;
+$header-height: 60px;
+$input-max-width: 768px;

@@ -1,0 +1,49 @@
+.mainChat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background-color: var(--bg-primary);
+  height: 100%;
+}
+
+.welcomeScreen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 50px;
+}
+
+.welcomeIcon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: var(--bg-hover);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  color: var(--text-primary);
+}
+
+.welcomeText {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.inputWrapperBottom {
+  width: 100%;
+  margin-top: auto;
+}
+
+.inputWrapperCenter {
+  width: 100%;
+  position: absolute;
+  bottom: 30%;
+  left: 0;
+  right: 0;
+  padding: 0 20px;
+}

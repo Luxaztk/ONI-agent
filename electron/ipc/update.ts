@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron';
-import { UpdateManager } from '../modules/ai/updateManager';
+import { UpdateManager } from '@electron/modules/ai/updateManager';
 
 export function setupUpdateIPC() {
   // Lắng nghe nút Check Update từ UI
