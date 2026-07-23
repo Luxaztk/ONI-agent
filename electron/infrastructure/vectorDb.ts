@@ -1,4 +1,5 @@
-import { MemoryVectorStore } from "@langchain/classic/vectorstores/memory";
+import { LanceDB } from "@langchain/community/vectorstores/lancedb";
+import { connect } from "@lancedb/lancedb";
 import { OllamaEmbeddings } from "@langchain/ollama";
 import { OllamaManager } from "../modules/ai/OllamaManager";
 import fs from "fs";
@@ -12,15 +13,19 @@ const getEmbeddings = () => {
   });
 };
 
-export const getDbPath = async () => {
+export const getDbDirPath = async (): Promise<string> => {
   if (process.versions.electron) {
     const electron = await import('electron');
-    return path.join(electron.app.getPath('userData'), 'vector_store.json');
+    return path.join(electron.app.getPath('userData'), 'lancedb');
   }
-  return path.join(process.cwd(), "data", "vector_store.json");
+  return path.join(process.cwd(), "data", "lancedb");
 };
 
-export const getMetaPath = async () => {
+export const getDbPath = async (): Promise<string> => {
+  return await getDbDirPath();
+};
+
+export const getMetaPath = async (): Promise<string> => {
   if (process.versions.electron) {
     const electron = await import('electron');
     return path.join(electron.app.getPath('userData'), 'meta.json');
@@ -28,38 +33,58 @@ export const getMetaPath = async () => {
   return path.join(process.cwd(), "data", "meta.json");
 };
 
-let storeInstance: MemoryVectorStore | null = null;
+let storeInstance: LanceDB | null = null;
 
-// Hàm hỗ trợ lưu store xuống ổ cứng
-export const saveVectorStore = async (store: MemoryVectorStore) => {
-  const data = JSON.stringify(store.memoryVectors);
-  const dbPath = await getDbPath();
-  
-  // Đảm bảo thư mục tồn tại
-  const dir = path.dirname(dbPath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-
-  fs.writeFileSync(dbPath, data, "utf-8");
-};
-
-// Hàm tải store
-export const getVectorStore = async (): Promise<MemoryVectorStore> => {
+export const getVectorStore = async (): Promise<LanceDB> => {
   if (storeInstance) return storeInstance;
 
-  storeInstance = new MemoryVectorStore(getEmbeddings());
-  const dbPath = await getDbPath();
-  
-  if (fs.existsSync(dbPath)) {
+  const dbDir = await getDbDirPath();
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+
+  const db = await connect(dbDir);
+  const tableName = "oni_knowledge";
+  const tableNames = await db.tableNames();
+
+  let table: any = undefined;
+  if (tableNames.includes(tableName)) {
+    table = await db.openTable(tableName);
+  } else {
+    console.log(`[VectorDb] Bảng "${tableName}" chưa tồn tại. Đang tự động khởi tạo bảng LanceDB...`);
     try {
-      const data = fs.readFileSync(dbPath, "utf-8");
-      const vectors = JSON.parse(data);
-      storeInstance.memoryVectors = vectors;
-      console.log(`Loaded ${vectors.length} vectors from ${dbPath}`);
-    } catch (e) {
-      console.error("Failed to load vector store", e);
+      const sampleVec = new Array(768).fill(0.001);
+      table = await db.createTable(tableName, [{
+        vector: sampleVec,
+        text: "Initial ONI Knowledge Base Anchor",
+        source: "system",
+        title: "Initial System Anchor",
+        type: "system",
+        entity_category: "system",
+        element: "system",
+        id: "anchor-0",
+        source_oni_db: "",
+        source_wiki: ""
+      }]);
+      console.log(`[VectorDb] Đã tạo bảng "${tableName}" thành công!`);
+    } catch (e: any) {
+      console.error(`[VectorDb] Lỗi khi tạo bảng ${tableName}:`, e.message);
     }
   }
-  return storeInstance;
+
+  const store = new LanceDB(getEmbeddings(), {
+    table,
+    tableName,
+  });
+
+  if (table) {
+    storeInstance = store;
+  }
+
+  return store;
+};
+
+// LanceDB tự động lưu đĩa phẳng, giữ hàm saveVectorStore để tương thích ngược
+export const saveVectorStore = async (_store: LanceDB) => {
+  console.log("✅ LanceDB đã tự động lưu dữ liệu xuống đĩa phẳng.");
 };

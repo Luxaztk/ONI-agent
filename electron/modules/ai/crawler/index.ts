@@ -1,34 +1,44 @@
 import { getWikiLinks, crawlWikiBatch } from "./wikiCrawler";
 import { getOniDbLinks, crawlOniDbBatch } from "./oniDbCrawler";
+import { getSteamGuideLinks, crawlSteamGuideBatch } from "./steamCrawler";
 import { Document } from "@langchain/core/documents";
 
-export const runCrawlers = async (): Promise<Document[]> => {
+export interface CrawlerTargets {
+  needsOniDb?: boolean;
+  needsWiki?: boolean;
+  needsSteam?: boolean;
+}
+
+export const runCrawlers = async (targets?: CrawlerTargets): Promise<Document[]> => {
   const allDocs: Document[] = [];
 
-  console.log("=== BẮT ĐẦU MASS CRAWLING ===");
+  const doOni = targets ? Boolean(targets.needsOniDb) : true;
+  const doWiki = targets ? Boolean(targets.needsWiki) : true;
+  const doSteam = targets ? Boolean(targets.needsSteam) : true;
 
-  // 1. Quét tìm toàn bộ URL
-  console.log("1. Đang quét danh sách URL...");
-  const [oniDbUrls, wikiUrls] = await Promise.all([
-    getOniDbLinks(),
-    getWikiLinks()
-  ]);
-  
-  // Tùy chọn: Giới hạn số lượng trang cào để test nhanh (Bỏ comment để dùng thật)
-  // const limitOni = oniDbUrls.slice(0, 10);
-  // const limitWiki = wikiUrls.slice(0, 10);
-  const limitOni = oniDbUrls;
-  const limitWiki = wikiUrls;
+  console.log(`=== BẮT ĐẦU CÀO DỮ LIỆU TỰ CHỌN (OniDb=${doOni}, Wiki=${doWiki}, Steam=${doSteam}) ===`);
 
-  // 2. Tiến hành cào hàng loạt
-  console.log(`2. Đang cào ${limitOni.length} trang Oni-db...`);
-  const oniDocs = await crawlOniDbBatch(limitOni);
-  allDocs.push(...oniDocs);
+  if (doOni) {
+    console.log("1. Đang quét và cào dữ liệu từ Oni-DB...");
+    const oniDbUrls = await getOniDbLinks();
+    const oniDocs = await crawlOniDbBatch(oniDbUrls);
+    allDocs.push(...oniDocs);
+  }
 
-  console.log(`3. Đang cào ${limitWiki.length} trang Wiki...`);
-  const wikiDocs = await crawlWikiBatch(limitWiki);
-  allDocs.push(...wikiDocs);
+  if (doWiki) {
+    console.log("2. Đang quét và cào 16 mục tiêu cốt lõi từ Wiki.gg...");
+    const wikiUrls = await getWikiLinks();
+    const wikiDocs = await crawlWikiBatch(wikiUrls);
+    allDocs.push(...wikiDocs);
+  }
 
-  console.log(`=== HOÀN TẤT MASS CRAWLING (Tổng cộng: ${allDocs.length} tài liệu) ===`);
+  if (doSteam) {
+    console.log("3. Đang quét và cào các bài hướng dẫn từ Steam Community...");
+    const steamUrls = await getSteamGuideLinks();
+    const steamDocs = await crawlSteamGuideBatch(steamUrls);
+    allDocs.push(...steamDocs);
+  }
+
+  console.log(`=== HOÀN TẤT CÀO DỮ LIỆU (Tổng cộng: ${allDocs.length} tài liệu) ===`);
   return allDocs;
 };

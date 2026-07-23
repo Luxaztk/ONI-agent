@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { app, BrowserWindow } from 'electron';
 import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -14,6 +15,14 @@ import { OllamaManager } from '@electron/modules/ai/OllamaManager';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// Shim __filename & __dirname on globalThis for ES module scope compatibility
+if (typeof (globalThis as any).__filename === 'undefined') {
+  (globalThis as any).__filename = __filename;
+}
+if (typeof (globalThis as any).__dirname === 'undefined') {
+  (globalThis as any).__dirname = __dirname;
+}
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -48,10 +57,13 @@ app.whenReady().then(async () => {
   // Setup DB cho user nếu là lần đầu mở app
   await UpdateManager.checkAndSetupInitialDB();
 
-  // Kiểm tra cập nhật ngầm
+  // Kiểm tra & Đồng bộ tri thức ngầm khi mở app (Startup Sync Matrix)
   const status = await UpdateManager.checkForUpdates();
-  if (status.needsOniDbUpdate || status.needsWikiUpdate) {
-    UpdateManager.performUpdate(status).catch(console.error);
+  if (status.hasUpdates) {
+    log.info(`[StartupSync] Phát hiện tri thức mới cần đồng bộ. CustomGuides: ${status.needsCustomGuides}, Steam: ${status.needsSteam}, Wiki: ${status.needsWiki}, ONI-DB: ${status.needsOniDb}`);
+    UpdateManager.performUpdate(status, (msg, pct) => {
+      mainWindow?.webContents.send('loading-progress', msg, pct);
+    }).catch(console.error);
   }
 
   createWindow();
@@ -74,6 +86,14 @@ app.whenReady().then(async () => {
       createWindow();
     }
   });
+});
+
+app.on('before-quit', () => {
+  OllamaManager.stop();
+});
+
+app.on('will-quit', () => {
+  OllamaManager.stop();
 });
 
 app.on('window-all-closed', () => {

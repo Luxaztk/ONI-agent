@@ -1,89 +1,215 @@
 import fs from 'fs';
 import path from 'path';
-import { getDbPath, getMetaPath } from '@electron/infrastructure/vectorDb';
-import { runIngestion } from '@electron/workers/ingest';
+import crypto from 'crypto';
+import { getDbDirPath, getMetaPath } from '@electron/infrastructure/vectorDb';
+import { runIngestion, type IngestionOptions } from '@electron/workers/ingest';
 
 const WIKI_API = "https://oxygennotincluded.wiki.gg/api.php?action=query&meta=siteinfo&siprop=statistics&format=json";
 
+export interface SyncStatus {
+  hasUpdates: boolean;
+  needsCustomGuides: boolean;
+  needsSteam: boolean;
+  needsWiki: boolean;
+  needsOniDb: boolean;
+  changedCustomFiles: string[];
+}
+
 export class UpdateManager {
   
-  // Được gọi khi khởi động App (trong main/index.ts)
+  // Được gọi khi khởi động App (trong main.ts)
   static async checkAndSetupInitialDB() {
-    const dbPath = await getDbPath();
+    const dbDirPath = await getDbDirPath();
     const metaPath = await getMetaPath();
-
-    if (!fs.existsSync(dbPath)) {
-       console.log("First run detected. Copying initial Vector DB to user data...");
-       
-       let sourceDb = "";
-       let sourceMeta = "";
-       
-       if (process.versions.electron) {
-          const electron = await import('electron');
-          const isPackaged = electron.app.isPackaged;
-          
-          if (isPackaged) {
-             sourceDb = path.join(process.resourcesPath, 'data', 'vector_store.json');
-             sourceMeta = path.join(process.resourcesPath, 'data', 'meta.json');
-          } else {
-             sourceDb = path.join(process.cwd(), 'data', 'vector_store.json');
-             sourceMeta = path.join(process.cwd(), 'data', 'meta.json');
-          }
-       } else {
-          return; // Node script, không cần copy
-       }
-
-       const dir = path.dirname(dbPath);
-       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-
-       if (fs.existsSync(sourceDb)) fs.copyFileSync(sourceDb, dbPath);
-       if (fs.existsSync(sourceMeta)) fs.copyFileSync(sourceMeta, metaPath);
-    }
-  }
-
-  // Trả về kết quả xem nguồn nào cần cào lại
-  static async checkForUpdates(): Promise<{ needsOniDbUpdate: boolean, needsWikiUpdate: boolean }> {
-    const metaPath = await getMetaPath();
-    if (!fs.existsSync(metaPath)) return { needsOniDbUpdate: true, needsWikiUpdate: true };
-
-    const meta = JSON.parse(fs.readFileSync(metaPath, "utf-8"));
     const now = Date.now();
 
-    // 1. Oni-DB: Cập nhật sau mỗi 30 ngày
-    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
-    const needsOniDbUpdate = (now - (meta.last_oni_db_update || 0)) > thirtyDaysMs;
+    let sourceLanceDir = "";
+    let sourceMeta = "";
 
-    // 2. Wiki: Kiểm tra API để xem số lượng chỉnh sửa có tăng đáng kể không (ví dụ > 50 edits)
-    let needsWikiUpdate = false;
-    try {
-      const res = await fetch(WIKI_API);
-      const data = await res.json() as any;
-      const currentEdits = data.query.statistics.edits;
+    if (process.versions.electron) {
+      const electron = await import('electron');
+      const isPackaged = electron.app.isPackaged;
       
-      if (!meta.wiki_edits_count || currentEdits > meta.wiki_edits_count + 50) {
-         needsWikiUpdate = true;
-         console.log(`Wiki updates found: ${meta.wiki_edits_count} -> ${currentEdits}`);
+      if (isPackaged) {
+        sourceLanceDir = path.join(process.resourcesPath, 'data', 'lancedb');
+        sourceMeta = path.join(process.resourcesPath, 'data', 'meta.json');
+      } else {
+        sourceLanceDir = path.join(process.cwd(), 'data', 'lancedb');
+        sourceMeta = path.join(process.cwd(), 'data', 'meta.json');
       }
-    } catch(e) {
-      console.error("Failed to check wiki update via API", e);
+    } else {
+      return;
     }
 
-    return { needsOniDbUpdate, needsWikiUpdate };
+    // Nếu chưa có DB ở APPDATA, copy từ project/package sang
+    if (!fs.existsSync(dbDirPath) || fs.readdirSync(dbDirPath).length === 0) {
+       console.log("[UpdateManager] Phát hiện lần chạy đầu tiên hoặc thiếu DB. Đang copy dữ liệu LanceDB ban đầu...");
+       if (fs.existsSync(sourceLanceDir)) {
+         fs.cpSync(sourceLanceDir, dbDirPath, { recursive: true });
+         console.log(`[UpdateManager] Đã copy thành công LanceDB từ ${sourceLanceDir} sang ${dbDirPath}`);
+       }
+    }
+
+    // Đảm bảo meta.json ở APPDATA luôn được khởi tạo chuẩn xác để không bị cào lại trên ứng dụng vừa mở
+    if (!fs.existsSync(metaPath)) {
+      if (fs.existsSync(sourceMeta)) {
+        fs.copyFileSync(sourceMeta, metaPath);
+      } else {
+        // Tự động khởi tạo meta.json với mốc thời gian hiện tại
+        const initialMeta = {
+          last_sync_timestamp: now,
+          last_oni_db_update: now,
+          last_wiki_update: now,
+          last_steam_update: now,
+          version: "1.1.0",
+          sources: {
+            custom_guides: { last_updated: now, file_hashes: {} },
+            steam_guides: { last_updated: now },
+            wiki_gg: { last_updated: now, last_edits_count: 0 },
+            oni_db: { last_updated: now }
+          }
+        };
+        const dir = path.dirname(metaPath);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(metaPath, JSON.stringify(initialMeta, null, 2), "utf-8");
+        console.log(`[UpdateManager] Đã tạo file meta.json khởi tạo tại ${metaPath}`);
+      }
+    }
   }
 
-  // Thực thi quá trình cập nhật DB
-  static async performUpdate(updates: { needsOniDbUpdate: boolean, needsWikiUpdate: boolean }) {
-    if (updates.needsOniDbUpdate || updates.needsWikiUpdate) {
-      console.log('🔄 Đang khởi động Crawler để cập nhật dữ liệu...');
+  // Tính mã MD5 Hash của 1 file
+  static getFileHash(filePath: string): string {
+    if (!fs.existsSync(filePath)) return '';
+    const content = fs.readFileSync(filePath);
+    return crypto.createHash('md5').update(content).digest('hex');
+  }
+
+  // Kiểm tra chi tiết mốc thời gian & thay đổi thực tế của từng nguồn khi MỞ APP
+  static async checkForUpdates(): Promise<SyncStatus> {
+    const metaPath = await getMetaPath();
+    const status: SyncStatus = {
+      hasUpdates: false,
+      needsCustomGuides: false,
+      needsSteam: false,
+      needsWiki: false,
+      needsOniDb: false,
+      changedCustomFiles: []
+    };
+
+    let meta: any = {};
+    if (fs.existsSync(metaPath)) {
       try {
-        await runIngestion();
-        console.log('✅ Cập nhật dữ liệu thành công!');
-        return true;
-      } catch (error) {
-        console.error('❌ Lỗi trong quá trình cập nhật dữ liệu:', error);
-        return false;
+        meta = JSON.parse(fs.readFileSync(metaPath, "utf-8"));
+      } catch (e) {
+        console.error("Lỗi khi đọc meta.json:", e);
       }
     }
-    return false;
+
+    const now = Date.now();
+    let metaNeedsSave = false;
+
+    // 1. Kiểm tra Custom Guides (data/custom_guides/) bằng MD5 Hash & mtime
+    const customGuidesDir = path.join(process.cwd(), 'data', 'custom_guides');
+    const knownHashes = meta.sources?.custom_guides?.file_hashes || {};
+
+    if (fs.existsSync(customGuidesDir)) {
+      const files = fs.readdirSync(customGuidesDir);
+      for (const file of files) {
+        if (file.endsWith('.md') || file.endsWith('.txt')) {
+          const fullPath = path.join(customGuidesDir, file);
+          const currentHash = this.getFileHash(fullPath);
+          if (!knownHashes[file] || knownHashes[file] !== currentHash) {
+            status.needsCustomGuides = true;
+            status.changedCustomFiles.push(file);
+            console.log(`[StartupSync] Phát hiện file custom guide mới/sửa: ${file}`);
+          }
+        }
+      }
+    }
+
+    // 2. Kiểm tra Steam Guides (Đồng bộ theo chu kỳ 7 ngày)
+    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+    let lastSteamSync = meta.sources?.steam_guides?.last_updated || meta.last_steam_update;
+    if (!lastSteamSync) {
+      // Nếu là DB có sẵn chưa ghi mtime, thiết lập mốc mtime hiện tại để không ép cào lại
+      lastSteamSync = now;
+      meta.sources = meta.sources || {};
+      meta.sources.steam_guides = { last_updated: now };
+      metaNeedsSave = true;
+    } else if (now - lastSteamSync > SEVEN_DAYS_MS) {
+      status.needsSteam = true;
+      console.log(`[StartupSync] Steam Guides quá hạn đồng bộ 7 ngày.`);
+    }
+
+    // 3. Kiểm tra Wiki.gg (Số lượng bài viết chỉnh sửa trên MediaWiki API)
+    let lastWikiEdits = meta.sources?.wiki_gg?.last_edits_count || meta.wiki_edits_count;
+    try {
+      const res = await fetch(WIKI_API);
+      if (res.ok) {
+        const data = (await res.json()) as any;
+        const currentEdits = data?.query?.statistics?.edits || 0;
+        if (!lastWikiEdits) {
+          // Lần đầu thiết lập mốc edits chuẩn của Wiki mà không ép cào lại
+          meta.sources = meta.sources || {};
+          meta.sources.wiki_gg = { ...meta.sources?.wiki_gg, last_edits_count: currentEdits, last_updated: now };
+          metaNeedsSave = true;
+        } else if (currentEdits > lastWikiEdits + 50) {
+          status.needsWiki = true;
+          console.log(`[StartupSync] Phát hiện cập nhật Wiki.gg: ${lastWikiEdits} -> ${currentEdits} edits.`);
+        }
+      }
+    } catch (e: any) {
+      console.error("[StartupSync] Lỗi khi kiểm tra API Wiki:", e.message);
+    }
+
+    // 4. Kiểm tra ONI-DB (Đồng bộ theo chu kỳ 30 ngày)
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+    let lastOniDbSync = meta.sources?.oni_db?.last_updated || meta.last_oni_db_update;
+    if (!lastOniDbSync) {
+      lastOniDbSync = now;
+      meta.sources = meta.sources || {};
+      meta.sources.oni_db = { last_updated: now };
+      metaNeedsSave = true;
+    } else if (now - lastOniDbSync > THIRTY_DAYS_MS) {
+      status.needsOniDb = true;
+      console.log(`[StartupSync] ONI-DB quá hạn đồng bộ 30 ngày.`);
+    }
+
+    if (metaNeedsSave && fs.existsSync(metaPath)) {
+      try {
+        fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2), "utf-8");
+      } catch (e) {
+        console.error("Failed to save updated meta.json:", e);
+      }
+    }
+
+    status.hasUpdates = status.needsCustomGuides || status.needsSteam || status.needsWiki || status.needsOniDb;
+    return status;
+  }
+
+  // Thực thi quá trình cập nhật tăng cường (Incremental Ingestion)
+  static async performUpdate(
+    status: SyncStatus,
+    onProgress?: (statusMsg: string, pct: number) => void
+  ): Promise<boolean> {
+    if (!status.hasUpdates) {
+      console.log('✅ Tất cả nguồn dữ liệu tri thức đã ở bản mới nhất!');
+      return false;
+    }
+
+    console.log('🔄 Đang khởi động Đồng bộ Tri thức Tăng Cường (Selective Ingestion)...');
+    try {
+      const options: IngestionOptions = {
+        targets: status,
+        force: true,
+        onProgress
+      };
+      await runIngestion(options);
+      console.log('✅ Đồng bộ tri thức mới thành công!');
+      return true;
+    } catch (error) {
+      console.error('❌ Lỗi trong quá trình đồng bộ tri thức:', error);
+      return false;
+    }
   }
 }

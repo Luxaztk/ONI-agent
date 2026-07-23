@@ -1,39 +1,58 @@
 import * as cheerio from "cheerio";
 import { Document } from "@langchain/core/documents";
 
-const CATEGORIES = [
-  "Category:Guides",
-  "Category:Game_mechanics",
-  "Category:Elements",
-  "Category:Lore"
+const CORE_TARGETS = [
+  "/wiki/Category:Guides",
+  "/wiki/Duplicant",
+  "/wiki/Building",
+  "/wiki/Critters",
+  "/wiki/Disease",
+  "/wiki/Skills",
+  "/wiki/Elements",
+  "/wiki/Equipment",
+  "/wiki/Food_(Resource)",
+  "/wiki/Geysers",
+  "/wiki/Plants",
+  "/wiki/Category:Research",
+  "/wiki/Biome",
+  "/wiki/Resource",
+  "/wiki/Asteroid_Types",
+  "/wiki/Planetoid_Clusters"
 ];
 
 export const getWikiLinks = async (): Promise<string[]> => {
-  console.log(`[WikiCrawler] Đang quét API để lấy các bài viết thuộc danh mục cốt lõi...`);
+  console.log(`[WikiCrawler] Đang quét API để lấy các bài viết thuộc 16 mục tiêu cốt lõi...`);
   const uniqueLinks = new Set<string>();
 
-  for (const cat of CATEGORIES) {
+  for (const target of CORE_TARGETS) {
     try {
-      const apiUrl = `https://oxygennotincluded.wiki.gg/api.php?action=query&list=categorymembers&cmtitle=${cat}&cmlimit=100&format=json`;
-      const res = await fetch(apiUrl);
-      const data = await res.json() as any;
+      const cleanPath = target.startsWith('/wiki/') ? target.replace('/wiki/', '') : target;
       
-      const members = data?.query?.categorymembers || [];
-      for (const member of members) {
-        // Chỉ lấy trang bài viết chính (ns: 0), bỏ qua các trang phụ
-        if (member.ns === 0) {
-          // Xây dựng URL từ title (thay khoảng trắng bằng dấu gạch dưới)
-          const slug = member.title.replace(/ /g, '_');
-          uniqueLinks.add(`https://oxygennotincluded.wiki.gg/wiki/${slug}`);
+      if (cleanPath.startsWith('Category:')) {
+        // Cào bài viết thuộc Category qua MediaWiki API
+        const apiUrl = `https://oxygennotincluded.wiki.gg/api.php?action=query&list=categorymembers&cmtitle=${encodeURIComponent(cleanPath)}&cmlimit=200&format=json`;
+        const res = await fetch(apiUrl);
+        const data = (await res.json()) as any;
+
+        const members = data?.query?.categorymembers || [];
+        for (const member of members) {
+          if (member.ns === 0) {
+            const slug = member.title.replace(/ /g, '_');
+            uniqueLinks.add(`https://oxygennotincluded.wiki.gg/wiki/${slug}`);
+          }
         }
+      } else {
+        // Thêm trực tiếp URL trang gốc
+        const pageUrl = `https://oxygennotincluded.wiki.gg/wiki/${cleanPath}`;
+        uniqueLinks.add(pageUrl);
       }
     } catch (e: any) {
-      console.error(`[WikiCrawler] Lỗi khi lấy danh mục ${cat}:`, e.message);
+      console.error(`[WikiCrawler] Lỗi khi lấy danh mục ${target}:`, e.message);
     }
   }
 
   const linksArray = Array.from(uniqueLinks);
-  console.log(`[WikiCrawler] Tìm thấy ${linksArray.length} bài viết hướng dẫn/cơ chế.`);
+  console.log(`[WikiCrawler] Tìm thấy tổng cộng ${linksArray.length} bài viết hướng dẫn & dữ liệu cốt lõi.`);
   return linksArray;
 };
 

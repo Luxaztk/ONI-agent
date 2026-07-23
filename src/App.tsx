@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Layout from './components/Layout';
 import { ThemeProvider } from './context/ThemeContext';
+import { ChatProvider } from './context/ChatContext';
 import { LoadingScreen } from './components/LoadingScreen/LoadingScreen';
 
 function App() {
@@ -8,11 +9,13 @@ function App() {
 
   return (
     <ThemeProvider>
-      {!isReady ? (
-        <LoadingScreen onReady={() => setIsReady(true)} />
-      ) : (
-        <Layout />
-      )}
+      <ChatProvider>
+        {!isReady ? (
+          <LoadingScreen onReady={() => setIsReady(true)} />
+        ) : (
+          <Layout />
+        )}
+      </ChatProvider>
     </ThemeProvider>
   );
 }

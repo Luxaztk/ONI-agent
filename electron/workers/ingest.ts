@@ -1,14 +1,31 @@
-import { getVectorStore, saveVectorStore, getMetaPath } from "@electron/infrastructure/vectorDb";
-import { runCrawlers } from "@electron/modules/ai/crawler";
-import { processElementData, type VectorChunk, slugify } from "@electron/modules/ai/processor";
+import path from "path";
+import { getVectorStore, saveVectorStore, getMetaPath } from "../infrastructure/vectorDb";
+import { runCrawlers } from "../modules/ai/crawler";
+import { processElementData, type VectorChunk, slugify } from "../modules/ai/processor";
 import { Document } from "@langchain/core/documents";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 
-export const runIngestion = async () => {
-  // Kiểm tra meta.json để tránh cào dữ liệu quá thường xuyên (30 ngày)
+import crypto from "crypto";
+
+export interface IngestionOptions {
+  targets?: {
+    needsCustomGuides?: boolean;
+    needsSteam?: boolean;
+    needsWiki?: boolean;
+    needsOniDb?: boolean;
+    changedCustomFiles?: string[];
+  };
+  force?: boolean;
+  onProgress?: (msg: string, pct: number) => void;
+}
+
+export const runIngestion = async (options: IngestionOptions | boolean = false) => {
+  const isForce = typeof options === "boolean" ? options : options.force ?? false;
+  const onProgress = typeof options === "object" ? options.onProgress : undefined;
+
   const fs = await import("fs");
   const metaPath = await getMetaPath();
-  if (fs.existsSync(metaPath)) {
+  if (!isForce && fs.existsSync(metaPath)) {
     try {
       const meta = JSON.parse(fs.readFileSync(metaPath, "utf-8"));
       const now = Date.now();
@@ -22,9 +39,17 @@ export const runIngestion = async () => {
     }
   }
 
-  console.log("Bắt đầu quá trình Cào dữ liệu mạng (Web Crawling)...");
-  const rawDocs = await runCrawlers();
-  console.log(`Đã cào xong ${rawDocs.length} trang web.`);
+  const targets = typeof options === "object" ? options.targets : undefined;
+  const needsWebCrawling = !targets || Boolean(targets.needsOniDb || targets.needsWiki || targets.needsSteam);
+
+  let rawDocs: Document[] = [];
+  if (needsWebCrawling) {
+    console.log("Bắt đầu quá trình Cào dữ liệu mạng (Web Crawling)...");
+    rawDocs = await runCrawlers(targets);
+    console.log(`Đã cào xong ${rawDocs.length} trang web.`);
+  } else {
+    console.log("⚡ Bỏ qua Cào dữ liệu mạng (chỉ đồng bộ/nạp nguồn Hướng dẫn Cục bộ).");
+  }
 
   console.log("Xử lý, làm sạch & Hợp nhất dữ liệu bằng processor (JSDOM & Semantic Chunking)...");
   
@@ -102,6 +127,57 @@ export const runIngestion = async () => {
     processedDocs.push(...fallbackChunks);
   }
 
+  // Nạp các file Hướng dẫn Cục bộ (data/custom_guides/)
+  const doCustomGuides = !targets || Boolean(targets.needsCustomGuides);
+  const customGuidesDir = path.join(process.cwd(), "data", "custom_guides");
+
+  if (doCustomGuides && fs.existsSync(customGuidesDir)) {
+    console.log(`[Ingest] Đang nạp các file Hướng dẫn Cục bộ từ ${customGuidesDir}...`);
+    let files = fs.readdirSync(customGuidesDir);
+    
+    if (targets?.changedCustomFiles && targets.changedCustomFiles.length > 0) {
+      files = files.filter(file => targets.changedCustomFiles?.includes(file));
+      console.log(`[Ingest] Lọc nạp tăng cường ${files.length} file custom guide mới/sửa: ${files.join(", ")}`);
+    }
+
+    for (const file of files) {
+      if (file.endsWith(".md") || file.endsWith(".txt")) {
+        const filePath = path.join(customGuidesDir, file);
+        const content = fs.readFileSync(filePath, "utf-8");
+        const guideDocs = await textSplitter.splitDocuments([
+          new Document({
+            pageContent: content,
+            metadata: {
+              source: filePath,
+              title: file.replace(/\.[^/.]+$/, "").replace(/_/g, " "),
+              type: "custom_guide",
+              entity_category: "guide"
+            }
+          })
+        ]);
+        processedDocs.push(...guideDocs);
+        console.log(`  -> Đã nạp ${file} (${guideDocs.length} chunks)`);
+      }
+    }
+  }
+
+  const normalizeMetadata = (meta: Record<string, any> = {}) => {
+    return {
+      source: String(meta.source || ""),
+      title: String(meta.title || ""),
+      type: String(meta.type || ""),
+      entity_category: String(meta.entity_category || ""),
+      element: String(meta.element || ""),
+      id: String(meta.id || ""),
+      source_oni_db: String(meta.source_oni_db || ""),
+      source_wiki: String(meta.source_wiki || "")
+    };
+  };
+
+  processedDocs.forEach(doc => {
+    doc.metadata = normalizeMetadata(doc.metadata);
+  });
+
   console.log(`Tài liệu đã được làm sạch và chia thành ${processedDocs.length} chunks chất lượng cao.`);
 
   console.log("Initializing Vector DB...");
@@ -111,21 +187,69 @@ export const runIngestion = async () => {
   for (let i = 0; i < processedDocs.length; i += batchSize) {
     const batch = processedDocs.slice(i, i + batchSize);
     await vectorStore.addDocuments(batch);
-    console.log(`- Added batch ${i / batchSize + 1}/${Math.ceil(processedDocs.length / batchSize)}`);
+    console.log(`- Added batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(processedDocs.length / batchSize)}`);
   }
   
   console.log("Saving vector store to disk...");
   await saveVectorStore(vectorStore);
   
-  // Lưu Meta.json
+  // Tính toán MD5 Hash cho tất cả file custom_guides
+  const fileHashes: Record<string, string> = {};
+  if (fs.existsSync(customGuidesDir)) {
+    const files = fs.readdirSync(customGuidesDir);
+    for (const file of files) {
+      if (file.endsWith(".md") || file.endsWith(".txt")) {
+        const filePath = path.join(customGuidesDir, file);
+        const content = fs.readFileSync(filePath);
+        fileHashes[file] = crypto.createHash("md5").update(content).digest("hex");
+      }
+    }
+  }
+
+  // Lấy số lượng edits hiện tại từ Wiki API
+  let currentWikiEdits = 0;
+  try {
+    const res = await fetch("https://oxygennotincluded.wiki.gg/api.php?action=query&meta=siteinfo&siprop=statistics&format=json");
+    if (res.ok) {
+      const data = (await res.json()) as any;
+      currentWikiEdits = data?.query?.statistics?.edits || 0;
+    }
+  } catch (e) {
+    // Ignore error
+  }
+
+  // Lưu Meta.json với cấu trúc Ma Trận Đồng Bộ Nguồn (Startup Sync Matrix)
+  const now = Date.now();
   const metaData = {
-    last_oni_db_update: Date.now(),
-    last_wiki_update: Date.now(),
-    version: "1.0.0"
+    last_sync_timestamp: now,
+    last_oni_db_update: now,
+    last_wiki_update: now,
+    last_steam_update: now,
+    version: "1.1.0",
+    sources: {
+      custom_guides: {
+        last_updated: now,
+        file_hashes: fileHashes
+      },
+      steam_guides: {
+        last_updated: now
+      },
+      wiki_gg: {
+        last_updated: now,
+        last_edits_count: currentWikiEdits
+      },
+      oni_db: {
+        last_updated: now
+      }
+    }
   };
   fs.writeFileSync(metaPath, JSON.stringify(metaData, null, 2), "utf-8");
 
+  if (onProgress) onProgress("Hoàn tất đồng bộ dữ liệu", 100);
   console.log("✅ Ingestion complete!");
 };
 
-// Ingestion will be triggered by UpdateManager
+// Chạy trực tiếp khi gọi qua CLI
+if (process.argv[1] && process.argv[1].includes("ingest")) {
+  runIngestion(true).catch(console.error);
+}

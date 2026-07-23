@@ -6,7 +6,7 @@ export function setupUpdateIPC() {
   ipcMain.handle('check-update', async () => {
     try {
       const status = await UpdateManager.checkForUpdates();
-      if (status.needsOniDbUpdate || status.needsWikiUpdate) {
+      if (status.hasUpdates) {
         const success = await UpdateManager.performUpdate(status);
         return { ...status, updated: success };
       }

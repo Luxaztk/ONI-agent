@@ -1,3 +1,21 @@
+/* Ẩn tất cả thanh cuộn trên toàn bộ ứng dụng (Global Scrollbar Removal) */
+html, body, #root, *, *::before, *::after {
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE / Edge */
+}
+
+::-webkit-scrollbar,
+*::-webkit-scrollbar,
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-thumb,
+::-webkit-scrollbar-corner {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+  opacity: 0 !important;
+}
+
 :root {
   --text: #6b6375;
   --text-h: #08060d;
@@ -51,15 +69,15 @@
 }
 
 #root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  text-align: left;
   display: flex;
-  flex-direction: column;
   box-sizing: border-box;
+  overflow: hidden;
+  background-color: #090d16;
 }
 
 body {

@@ -17,7 +17,7 @@ const getUserDataPath = () => {
 export class OllamaManager {
   private static ollamaProcess: ChildProcess | null = null;
   private static port = 11434;
-  private static models = ['gemma:2b', 'nomic-embed-text'];
+  private static models = ['nomic-embed-text'];
 
   // 1. Tìm port trống
   private static async findFreePort(): Promise<number> {
@@ -28,6 +28,17 @@ export class OllamaManager {
         server.close(() => resolve(port));
       });
     });
+  }
+
+  private static killExistingProcess() {
+    if (process.platform === 'win32') {
+      try {
+        const { execSync } = require('child_process');
+        execSync('taskkill /F /IM ollama.exe /T 2>nul', { stdio: 'ignore' });
+      } catch (e) {
+        // Bỏ qua nếu không có tiến trình nào đang chạy
+      }
+    }
   }
 
   // 2. Kiểm tra và tải binary
@@ -70,7 +81,6 @@ export class OllamaManager {
       }
       fileStream.end();
     } else {
-      // Fallback if reader not available (e.g. Node 18 fetch without streaming body properly typed)
       const arrayBuffer = await response.arrayBuffer();
       fs.writeFileSync(tempZipPath, Buffer.from(arrayBuffer));
       onProgress('Đang tải Ollama AI Engine...', 100);
@@ -78,11 +88,20 @@ export class OllamaManager {
 
     onProgress('Đang giải nén...', 100);
     log.info('Extracting Ollama...');
-    const zip = new AdmZip(tempZipPath);
-    zip.extractAllTo(binDir, true);
+    try {
+      const zip = new AdmZip(tempZipPath);
+      // Không ghi đè nếu file đã tồn tại để tránh EBUSY lock DLL
+      zip.extractAllTo(binDir, false);
+    } catch (e: any) {
+      log.warn('[OllamaManager] Cảnh báo giải nén (file DLL đang được sử dụng):', e.message);
+    }
     
     if (fs.existsSync(tempZipPath)) {
-      fs.unlinkSync(tempZipPath);
+      try {
+        fs.unlinkSync(tempZipPath);
+      } catch (e) {
+        // Ignore temp file cleanup error
+      }
     }
 
     return exePath;
@@ -90,6 +109,9 @@ export class OllamaManager {
 
   // 3. Khởi động tiến trình Ollama
   public static async start(onProgress: (status: string, percent: number) => void): Promise<number> {
+    // Tiêu diệt bất kỳ tiến trình ollama.exe sót lại nào từ trước để nhả lock DLL
+    this.killExistingProcess();
+
     const exePath = await this.ensureBinary(onProgress);
     this.port = await this.findFreePort();
     
@@ -198,8 +220,17 @@ export class OllamaManager {
   }
 
   public static stop() {
-    if (this.ollamaProcess) {
-      this.ollamaProcess.kill();
+    if (this.ollamaProcess && this.ollamaProcess.pid) {
+      log.info(`[Ollama] Đang dừng tiến trình Ollama (PID: ${this.ollamaProcess.pid})...`);
+      try {
+        if (process.platform === 'win32') {
+          spawn('taskkill', ['/F', '/T', '/PID', this.ollamaProcess.pid.toString()]);
+        } else {
+          this.ollamaProcess.kill('SIGKILL');
+        }
+      } catch (e: any) {
+        log.error('[Ollama] Lỗi khi dừng tiến trình Ollama:', e.message);
+      }
       this.ollamaProcess = null;
     }
   }
