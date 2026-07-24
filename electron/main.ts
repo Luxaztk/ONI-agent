@@ -11,6 +11,7 @@ Object.assign(console, log.functions);
 import { UpdateManager } from '@electron/modules/ai/updateManager';
 import { setupChatIPC } from '@electron/ipc/chat';
 import { setupUpdateIPC } from '@electron/ipc/update';
+import { setupSettingsIPC } from '@electron/ipc/settings';
 import { OllamaManager } from '@electron/modules/ai/OllamaManager';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -50,21 +51,11 @@ function createWindow() {
 app.whenReady().then(async () => {
   // Setup IPC Handlers
   setupChatIPC();
-
-
   setupUpdateIPC();
+  setupSettingsIPC();
 
   // Setup DB cho user nếu là lần đầu mở app
   await UpdateManager.checkAndSetupInitialDB();
-
-  // Kiểm tra & Đồng bộ tri thức ngầm khi mở app (Startup Sync Matrix)
-  const status = await UpdateManager.checkForUpdates();
-  if (status.hasUpdates) {
-    log.info(`[StartupSync] Phát hiện tri thức mới cần đồng bộ. CustomGuides: ${status.needsCustomGuides}, Steam: ${status.needsSteam}, Wiki: ${status.needsWiki}, ONI-DB: ${status.needsOniDb}`);
-    UpdateManager.performUpdate(status, (msg, pct) => {
-      mainWindow?.webContents.send('loading-progress', msg, pct);
-    }).catch(console.error);
-  }
 
   createWindow();
 

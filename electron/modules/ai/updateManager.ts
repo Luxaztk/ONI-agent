@@ -50,12 +50,24 @@ export class UpdateManager {
        }
     }
 
-    // Đảm bảo meta.json ở APPDATA luôn được khởi tạo chuẩn xác để không bị cào lại trên ứng dụng vừa mở
+    // Đảm bảo meta.json ở APPDATA luôn được khởi tạo chuẩn xác để không bị cào lại khi mới mở app
     if (!fs.existsSync(metaPath)) {
       if (fs.existsSync(sourceMeta)) {
         fs.copyFileSync(sourceMeta, metaPath);
       } else {
-        // Tự động khởi tạo meta.json với mốc thời gian hiện tại
+        // Tự tính MD5 hash các custom guide hiện tại
+        const customGuidesDir = path.join(process.cwd(), 'data', 'custom_guides');
+        const fileHashes: Record<string, string> = {};
+        if (fs.existsSync(customGuidesDir)) {
+          const files = fs.readdirSync(customGuidesDir);
+          for (const file of files) {
+            if (file.endsWith('.md') || file.endsWith('.txt')) {
+              const fullPath = path.join(customGuidesDir, file);
+              fileHashes[file] = this.getFileHash(fullPath);
+            }
+          }
+        }
+
         const initialMeta = {
           last_sync_timestamp: now,
           last_oni_db_update: now,
@@ -63,9 +75,9 @@ export class UpdateManager {
           last_steam_update: now,
           version: "1.1.0",
           sources: {
-            custom_guides: { last_updated: now, file_hashes: {} },
+            custom_guides: { last_updated: now, file_hashes: fileHashes },
             steam_guides: { last_updated: now },
-            wiki_gg: { last_updated: now, last_edits_count: 0 },
+            wiki_gg: { last_updated: now, last_edits_count: 71194 },
             oni_db: { last_updated: now }
           }
         };
@@ -84,7 +96,7 @@ export class UpdateManager {
     return crypto.createHash('md5').update(content).digest('hex');
   }
 
-  // Kiểm tra chi tiết mốc thời gian & thay đổi thực tế của từng nguồn khi MỞ APP
+  // Kiểm tra chi tiết mốc thời gian & thay đổi thực tế khi bấm "Cập nhật Tri thức" trên UI
   static async checkForUpdates(): Promise<SyncStatus> {
     const metaPath = await getMetaPath();
     const status: SyncStatus = {
@@ -118,27 +130,32 @@ export class UpdateManager {
         if (file.endsWith('.md') || file.endsWith('.txt')) {
           const fullPath = path.join(customGuidesDir, file);
           const currentHash = this.getFileHash(fullPath);
-          if (!knownHashes[file] || knownHashes[file] !== currentHash) {
+          if (!knownHashes[file]) {
+            // Lần đầu ghi nhận hash file mà không ép cào lại trừ khi file bị sửa sau này
+            knownHashes[file] = currentHash;
+            metaNeedsSave = true;
+          } else if (knownHashes[file] !== currentHash) {
             status.needsCustomGuides = true;
             status.changedCustomFiles.push(file);
-            console.log(`[StartupSync] Phát hiện file custom guide mới/sửa: ${file}`);
+            console.log(`[UpdateCheck] Phát hiện file custom guide bị chỉnh sửa: ${file}`);
           }
         }
       }
+      meta.sources = meta.sources || {};
+      meta.sources.custom_guides = { ...meta.sources?.custom_guides, file_hashes: knownHashes };
     }
 
-    // 2. Kiểm tra Steam Guides (Đồng bộ theo chu kỳ 7 ngày)
-    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+    // 2. Kiểm tra Steam Guides (Đồng bộ theo chu kỳ 30 ngày)
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
     let lastSteamSync = meta.sources?.steam_guides?.last_updated || meta.last_steam_update;
     if (!lastSteamSync) {
-      // Nếu là DB có sẵn chưa ghi mtime, thiết lập mốc mtime hiện tại để không ép cào lại
       lastSteamSync = now;
       meta.sources = meta.sources || {};
       meta.sources.steam_guides = { last_updated: now };
       metaNeedsSave = true;
-    } else if (now - lastSteamSync > SEVEN_DAYS_MS) {
+    } else if (now - lastSteamSync > THIRTY_DAYS_MS) {
       status.needsSteam = true;
-      console.log(`[StartupSync] Steam Guides quá hạn đồng bộ 7 ngày.`);
+      console.log(`[UpdateCheck] Steam Guides quá hạn đồng bộ 30 ngày.`);
     }
 
     // 3. Kiểm tra Wiki.gg (Số lượng bài viết chỉnh sửa trên MediaWiki API)
@@ -148,31 +165,31 @@ export class UpdateManager {
       if (res.ok) {
         const data = (await res.json()) as any;
         const currentEdits = data?.query?.statistics?.edits || 0;
-        if (!lastWikiEdits) {
+        if (!lastWikiEdits || lastWikiEdits === 0) {
           // Lần đầu thiết lập mốc edits chuẩn của Wiki mà không ép cào lại
           meta.sources = meta.sources || {};
           meta.sources.wiki_gg = { ...meta.sources?.wiki_gg, last_edits_count: currentEdits, last_updated: now };
           metaNeedsSave = true;
-        } else if (currentEdits > lastWikiEdits + 50) {
+        } else if (currentEdits > lastWikiEdits + 500) {
           status.needsWiki = true;
-          console.log(`[StartupSync] Phát hiện cập nhật Wiki.gg: ${lastWikiEdits} -> ${currentEdits} edits.`);
+          console.log(`[UpdateCheck] Phát hiện cập nhật lớn Wiki.gg: ${lastWikiEdits} -> ${currentEdits} edits.`);
         }
       }
     } catch (e: any) {
-      console.error("[StartupSync] Lỗi khi kiểm tra API Wiki:", e.message);
+      console.error("[UpdateCheck] Lỗi khi kiểm tra API Wiki:", e.message);
     }
 
-    // 4. Kiểm tra ONI-DB (Đồng bộ theo chu kỳ 30 ngày)
-    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+    // 4. Kiểm tra ONI-DB (Đồng bộ theo chu kỳ 60 ngày)
+    const SIXTY_DAYS_MS = 60 * 24 * 60 * 60 * 1000;
     let lastOniDbSync = meta.sources?.oni_db?.last_updated || meta.last_oni_db_update;
     if (!lastOniDbSync) {
       lastOniDbSync = now;
       meta.sources = meta.sources || {};
       meta.sources.oni_db = { last_updated: now };
       metaNeedsSave = true;
-    } else if (now - lastOniDbSync > THIRTY_DAYS_MS) {
+    } else if (now - lastOniDbSync > SIXTY_DAYS_MS) {
       status.needsOniDb = true;
-      console.log(`[StartupSync] ONI-DB quá hạn đồng bộ 30 ngày.`);
+      console.log(`[UpdateCheck] ONI-DB quá hạn đồng bộ 60 ngày.`);
     }
 
     if (metaNeedsSave && fs.existsSync(metaPath)) {

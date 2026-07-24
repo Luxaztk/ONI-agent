@@ -54,11 +54,16 @@ export class OllamaManager {
       fs.mkdirSync(binDir, { recursive: true });
     }
 
-    onProgress('Đang tải Ollama AI Engine...', 0);
-    log.info('Downloading Ollama zip...');
-    
     const zipUrl = 'https://github.com/ollama/ollama/releases/latest/download/ollama-windows-amd64.zip';
     const tempZipPath = path.join(os.tmpdir(), 'ollama-windows.zip');
+
+    // Xóa file temp cũ nếu có để tránh ghi đè file hỏng
+    if (fs.existsSync(tempZipPath)) {
+      try { fs.unlinkSync(tempZipPath); } catch (e) { /* ignore */ }
+    }
+
+    onProgress('Đang tải Ollama AI Engine...', 0);
+    log.info('Downloading Ollama zip...');
 
     const response = await fetch(zipUrl);
     if (!response.ok) throw new Error(`Failed to download Ollama: ${response.statusText}`);
@@ -66,34 +71,53 @@ export class OllamaManager {
     const totalBytes = Number(response.headers.get('content-length')) || 0;
     let downloadedBytes = 0;
 
-    const fileStream = fs.createWriteStream(tempZipPath);
     const reader = response.body?.getReader();
     
-    if (reader) {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        downloadedBytes += value.length;
-        if (totalBytes > 0) {
-          onProgress('Đang tải Ollama AI Engine...', Math.round((downloadedBytes / totalBytes) * 100));
-        }
-        fileStream.write(value);
+    // Đợi file stream hoàn tất việc ghi đĩa tránh race condition với AdmZip
+    await new Promise<void>((resolve, reject) => {
+      const fileStream = fs.createWriteStream(tempZipPath);
+      fileStream.on('finish', resolve);
+      fileStream.on('error', (err) => {
+        fileStream.destroy();
+        reject(err);
+      });
+
+      if (reader) {
+        (async () => {
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              downloadedBytes += value.length;
+              if (totalBytes > 0) {
+                onProgress('Đang tải Ollama AI Engine...', Math.round((downloadedBytes / totalBytes) * 100));
+              }
+              fileStream.write(value);
+            }
+            fileStream.end();
+          } catch (err) {
+            fileStream.destroy();
+            reject(err);
+          }
+        })();
+      } else {
+        response.arrayBuffer().then(buffer => {
+          fileStream.write(Buffer.from(buffer));
+          fileStream.end();
+        }).catch(err => {
+          fileStream.destroy();
+          reject(err);
+        });
       }
-      fileStream.end();
-    } else {
-      const arrayBuffer = await response.arrayBuffer();
-      fs.writeFileSync(tempZipPath, Buffer.from(arrayBuffer));
-      onProgress('Đang tải Ollama AI Engine...', 100);
-    }
+    });
 
     onProgress('Đang giải nén...', 100);
     log.info('Extracting Ollama...');
     try {
       const zip = new AdmZip(tempZipPath);
-      // Không ghi đè nếu file đã tồn tại để tránh EBUSY lock DLL
       zip.extractAllTo(binDir, false);
     } catch (e: any) {
-      log.warn('[OllamaManager] Cảnh báo giải nén (file DLL đang được sử dụng):', e.message);
+      log.warn('[OllamaManager] Cảnh báo giải nén (file DLL đang được sử dụng hoặc zip lỗi):', e.message);
     }
     
     if (fs.existsSync(tempZipPath)) {
@@ -102,6 +126,10 @@ export class OllamaManager {
       } catch (e) {
         // Ignore temp file cleanup error
       }
+    }
+
+    if (!fs.existsSync(exePath)) {
+      throw new Error('Không tìm thấy file ollama.exe sau khi giải nén. File zip có thể đã bị lỗi khi tải về.');
     }
 
     return exePath;
@@ -133,6 +161,10 @@ export class OllamaManager {
         OLLAMA_MODELS: modelsDir,
       },
       windowsHide: true,
+    });
+
+    this.ollamaProcess.on('error', (err) => {
+      log.error('[Ollama] Lỗi tiến trình:', err.message);
     });
 
     this.ollamaProcess.stdout?.on('data', (data) => {

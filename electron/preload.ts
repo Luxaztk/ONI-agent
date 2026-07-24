@@ -37,5 +37,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   onLoadingProgress: (callback: (status: string, percent: number) => void) => {
     ipcRenderer.on('loading-progress', (_event: any, status: any, percent: any) => callback(status, percent));
-  }
+  },
+  checkUpdate: () => ipcRenderer.invoke('check-update'),
+  getSettings: () => ipcRenderer.invoke('get-settings'),
+  saveSettings: (config: any) => ipcRenderer.invoke('save-settings', config),
+  testLLMConnection: (config: any) => ipcRenderer.invoke('test-llm-connection', config)
 });

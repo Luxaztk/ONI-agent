@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Bot, User, Copy, Check } from 'lucide-react';
+import { Copy, Check } from 'lucide-react';
 import styles from './MessageItem.module.scss';
 
 export interface MessageProps {
@@ -40,23 +40,7 @@ const MessageItem: React.FC<{ message: MessageProps }> = ({ message }) => {
 
   return (
     <div className={`${styles.messageWrapper} ${isUser ? styles.user : styles.ai}`}>
-      <div className={styles.avatar}>
-        {isUser ? (
-          <div className={styles.userAvatar}>
-            <User size={18} />
-          </div>
-        ) : (
-          <div className={styles.aiAvatar}>
-            <Bot size={20} />
-          </div>
-        )}
-      </div>
-
       <div className={styles.contentContainer}>
-        <div className={styles.authorName}>
-          {isUser ? 'Bạn' : 'Kỹ sư trưởng ONI'}
-        </div>
-
         <div className={isUser ? styles.userBubble : styles.aiBubble}>
           {isUser ? (
             <div className={styles.userText}>{message.content}</div>

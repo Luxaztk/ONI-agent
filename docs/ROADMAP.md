@@ -38,8 +38,8 @@
   - [x] Wiki.gg: Theo dõi số lượng chỉnh sửa MediaWiki API `last_edits_count` (71,194 edits).
   - [x] ONI-DB: Đồng bộ theo chu kỳ 30 ngày.
 - [x] Sửa triệt để lỗi cào lại mạng ngoài ý muốn khi restart app bằng cách lưu đúng mốc mtime và `last_edits_count` trong `%APPDATA%/oni-agent/meta.json`.
-- [ ] Bổ sung tính năng cào ngầm bằng `puppeteer-core` (dùng chung lõi Chromium của Electron) và tích hợp nút "Check Update" trên UI.
-- [ ] Đóng gói toàn bộ ứng dụng thành 1 file `.exe` duy nhất bằng Electron Builder.
+- [x] Bổ sung tính năng cào ngầm bằng `puppeteer-core` (dùng chung lõi Chromium của Electron) và tích hợp nút "Check Update" trên UI.
+- [x] Đóng gói toàn bộ ứng dụng thành 1 file `.exe` cài đặt Windows (NSIS Installer) bằng Electron Builder.
 
 ## Phase 5: Mở Rộng Tri Thức Cộng Đồng & Tối Ưu RAG Nâng Cao
 - [x] **Phase 5.1: Mở Rộng Wiki.gg Crawler (16 Danh mục cốt lõi)**
@@ -56,3 +56,12 @@
   - [x] **LLM Cross-Reranker (`reranker.ts`)**: Lấy `k=25` candidates từ LanceDB và dùng LLM Cross-Reranker để lọc ra 8 đoạn tri thức xuất sắc nhất.
   - [x] **ONI Engineering Tools (`tools/index.ts`)**: Tích hợp các công cụ tra cứu công thức chế tạo, tính toán công suất kỹ thuật và tra cứu LanceDB RAG.
   - [x] **Multi-Turn Chat History**: Tự động ghi nhớ và đưa 6 tin nhắn gần nhất (`ChatMessage[] history`) vào ngữ cảnh Prompt RAG.
+
+## Phase 6: Quản Lý Cấu Hình LLM & Giao Diện Cài Đặt (BYOK & Security UI)
+- [x] **Thiết Kế Giao Diện Cài Đặt (Settings Modal / Page UI)**:
+  - [x] Tạo UI cho phép chọn chế độ AI: **Ollama Local (Miễn phí)** hoặc **Azure AI Foundry / Azure OpenAI (BYOK - Nhập Key cá nhân)**.
+  - [x] Form nhập dữ liệu cấu hình: `Endpoint`, `API Key`, `Model Name`.
+  - [x] Tích hợp nút **"Kiểm tra kết nối" (Test Connection)** xác nhận API Key hoạt động trước khi lưu.
+- [x] **Bảo Mật API Key Cá Nhân Cục Bộ**:
+  - [x] Sử dụng API `safeStorage` của Electron để mã hóa API Key trước khi lưu xuống đĩa cục bộ, ngăn chặn rò rỉ khi người dùng sử dụng máy.
+  - [x] Đảm bảo ứng dụng không nhúng bất kỳ API Key mặc định nào trong bản build thương mại để bảo vệ tài khoản nhà phát triển.

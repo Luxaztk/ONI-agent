@@ -7,10 +7,60 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder",
     "lint": "oxlint",
     "preview": "vite preview",
     "ingest": "tsx electron/workers/ingest.ts",
     "migrate": "tsx scripts/migrate_json_to_lancedb.ts"
+  },
+  "build": {
+    "appId": "com.oniagent.app",
+    "productName": "ONI Agent",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "data/lancedb",
+        "to": "data/lancedb",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "data/custom_guides",
+        "to": "data/custom_guides",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "data/meta.json",
+        "to": "data/meta.json"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "ONI Agent"
+    }
   },
   "dependencies": {
     "@lancedb/lancedb": "^0.31.0",
