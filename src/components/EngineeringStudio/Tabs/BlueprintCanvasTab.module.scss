@@ -1,0 +1,136 @@
+.canvasContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: rgba(20, 24, 33, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 10px 14px;
+  border-radius: 10px;
+}
+
+.layerGroup {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.layerBtn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #aaa;
+  padding: 5px 11px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.18s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.13);
+    color: #fff;
+  }
+
+  &.active {
+    background: rgba(0, 229, 255, 0.15);
+    border-color: #00e5ff;
+    color: #00e5ff;
+    box-shadow: 0 0 8px rgba(0, 229, 255, 0.25);
+  }
+}
+
+.zoomGroup {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.zoomBtn {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #bbb;
+  padding: 5px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.18s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+  }
+}
+
+.zoomLabel {
+  font-size: 0.81rem;
+  color: #aaa;
+  min-width: 34px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.canvasWrapper {
+  position: relative;
+  width: 100%;
+  height: 440px;
+  background: #0b0f1a;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 0);
+  background-size: 24px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: auto;
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.bpCanvas {
+  image-rendering: pixelated;
+  display: block;
+}
+
+.overlayInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.infoTitle {
+  font-weight: bold;
+  color: #00e5ff;
+}
+
+.copyBtn {
+  background: linear-gradient(135deg, #7b61ff, #00e5ff);
+  color: #000;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+
+  &:hover {
+    filter: brightness(1.15);
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.4);
+  }
+}

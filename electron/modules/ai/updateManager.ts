@@ -15,6 +15,8 @@ export interface SyncStatus {
   changedCustomFiles: string[];
 }
 
+import { configManager } from '@electron/modules/config/configManager';
+
 export class UpdateManager {
   
   // Được gọi khi khởi động App (trong main.ts)
@@ -98,7 +100,6 @@ export class UpdateManager {
 
   // Kiểm tra chi tiết mốc thời gian & thay đổi thực tế khi bấm "Cập nhật Tri thức" trên UI
   static async checkForUpdates(): Promise<SyncStatus> {
-    const metaPath = await getMetaPath();
     const status: SyncStatus = {
       hasUpdates: false,
       needsCustomGuides: false,
@@ -107,6 +108,14 @@ export class UpdateManager {
       needsOniDb: false,
       changedCustomFiles: []
     };
+
+    const cfg = configManager.getConfig();
+    if (cfg.offlineMode) {
+      console.log('[UpdateCheck] 🛡️ Chế độ Tiết kiệm Mạng Di động (Offline Guard) đang BẬT. Khóa 100% kết nối cào mạng ngoài.');
+      return status;
+    }
+
+    const metaPath = await getMetaPath();
 
     let meta: any = {};
     if (fs.existsSync(metaPath)) {

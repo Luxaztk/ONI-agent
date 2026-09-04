@@ -18,12 +18,14 @@ export interface OllamaConfig {
 
 export interface AIConfig {
   provider: 'ollama' | 'azure';
+  offlineMode?: boolean;
   azure: AzureConfig;
   ollama: OllamaConfig;
 }
 
 const DEFAULT_CONFIG: AIConfig = {
   provider: 'ollama',
+  offlineMode: false,
   azure: {
     endpoint: '',
     apiKey: '',
@@ -93,6 +95,7 @@ class ConfigManager {
     if (!fs.existsSync(filePath)) {
       this.config = {
         provider: envApiKey ? 'azure' : 'ollama',
+        offlineMode: false,
         azure: {
           endpoint: envEndpoint,
           apiKey: envApiKey,
@@ -112,6 +115,7 @@ class ConfigManager {
 
       this.config = {
         provider: parsed.provider || (envApiKey ? 'azure' : 'ollama'),
+        offlineMode: Boolean(parsed.offlineMode),
         azure: {
           endpoint: parsed.azure?.endpoint || envEndpoint,
           apiKey: azureApiKey,
@@ -127,6 +131,7 @@ class ConfigManager {
       log.error('[ConfigManager] Lỗi đọc config.json, dùng mặc định:', e.message);
       this.config = {
         provider: envApiKey ? 'azure' : 'ollama',
+        offlineMode: false,
         azure: {
           endpoint: envEndpoint,
           apiKey: envApiKey,
@@ -158,6 +163,7 @@ class ConfigManager {
 
     const toSave = {
       provider: newConfig.provider,
+      offlineMode: Boolean(newConfig.offlineMode),
       azure: {
         endpoint: newConfig.azure.endpoint.trim(),
         apiKey: encryptedKey,
@@ -175,6 +181,7 @@ class ConfigManager {
     // Update in-memory config
     this.config = {
       provider: newConfig.provider,
+      offlineMode: Boolean(newConfig.offlineMode),
       azure: {
         endpoint: newConfig.azure.endpoint.trim(),
         apiKey: finalApiKey,

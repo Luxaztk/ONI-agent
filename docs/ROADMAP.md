@@ -65,3 +65,51 @@
 - [x] **Bảo Mật API Key Cá Nhân Cục Bộ**:
   - [x] Sử dụng API `safeStorage` của Electron để mã hóa API Key trước khi lưu xuống đĩa cục bộ, ngăn chặn rò rỉ khi người dùng sử dụng máy.
   - [x] Đảm bảo ứng dụng không nhúng bất kỳ API Key mặc định nào trong bản build thương mại để bảo vệ tài khoản nhà phát triển.
+
+## Phase 7: Công Cụ Tính Toán Kỹ Thuật & Multi-Layer Blueprint Engine V3 (Cấp 1.2)
+- [x] **Giao Diện Engineering Calculators Panel**:
+  - [x] **SPOM Calculator**: Tính toán số lượng Electrolyzer, Hydrogen Generator, Pump & lọc khí cần thiết cho N Duplicants.
+  - [x] **AT/ST Heat & Cooling Calculator**: Tính số lượng Steam Turbine cần thiết để giải nhiệt cho Aquatuner chạy Coolant bất kỳ (Polluted Water, Super Coolant, Naphtha).
+  - [x] **Food & Resource Calculator**: Tính sản lượng Calo, Nước tưới, Phân bón và số Cây trồng / Động vật cần duy trì.
+- [x] **Mở Rộng Thư Mục Master Blueprints (`data/blueprints/`)**:
+  - [x] Biên soạn và chuẩn hóa kho Master Blueprints mở rộng (50+ bản vẽ bao gồm SPOM, AT/ST, Petroleum/Sour Gas Boiler, Infinite Storages, Tamers, Rocketry, Shipping Hubs...).
+- [x] **Bộ Sinh Sơ Đồ Multi-Layer Blueprint Engine (Bao Phủ 6 Overlays ONI)**:
+  - [x] **Tab 1 - Multi-Diagram Mermaid Logic Engine**: Xuất sơ đồ luồng Mermaid phân tách riêng biệt theo từng Layer (Logic Kiến trúc, Đường Nước 🔵, Đường Khí 🟢, Mạch Điện 🟡 & Automation 🔴, Băng chuyền 📦).
+  - [x] **Tab 2 - Interactive `<BlueprintViewer />` với 6-Layer Switcher**: Canvas 2D có thanh công cụ chuyển lớp (`Building`, `Liquid`, `Gas`, `Power`, `Automation`, `Shipping`) và chế độ đè lớp `Composite Mode` kèm nút Copy Blueprint String.
+  - [x] **Tab 3 - Adaptive Base Guide Engine**: LLM tư vấn thay thế vật liệu (Material Swap Table) và điều chỉnh linh kiện phù hợp với địa hình & diện tích thực tế của căn cứ người chơi.
+- [x] **Tích Hợp LLM Tool Calling Layer**:
+  - [x] Kết nối các Calculator Module & Multi-Layer Blueprint Viewer với LLM Tool Agent để tự động kích hoạt khi người dùng đặt câu hỏi thiết kế trong Chat.
+
+
+
+## Phase 8: Chuyên Gia Soi Lỗi Trực Quan - Vision Debugger Agent (Cấp 2.1 & 2.2)
+- [ ] **Giao Diện Tương Tác Visual Debugger (Renderer Process)**:
+  - [ ] Tích hợp tính năng Kéo-Thả (Drag & Drop) và Dán (Ctrl+V) ảnh chụp màn hình vào Khung Chat.
+  - [ ] **Crop Tool & Overlay Selector**: Cho phép người dùng khoanh vùng đường ống/dây điện hoặc chọn loại Overlay (Plumbing, Electrical, Automation, Gas).
+- [ ] **Tích Hợp Vision Model (Ollama / Azure Vision API)**:
+  - [ ] Cấu hình Ollama hỗ trợ VLM (Moondream2 / LLaVA) hoặc Azure OpenAI Vision API (`gpt-4o` / `gpt-5.3-vision`).
+  - [ ] **Rule-based Port Checker Engine**: Kiểm tra quy tắc màu sắc đường ống ONI:
+    - Cổng Trắng (Input) -> Cổng Trắng (Lỗi trùng lối vào).
+    - Cổng Xanh (Output) -> Cổng Xanh (Lỗi trùng lối ra).
+    - Phát hiện ngược chiều Bridge (Liquid/Gas/Bridge / Automation Filter).
+
+## Phase 9: Người Gác Đền Thời Gian Thực - Real-time Telemetry Agent (Cấp 3.1 & 3.2)
+- [ ] **Xây Dựng C# Harmony Mod (`ONI-Agent-Observer.dll`)**:
+  - [ ] Hook vào sự kiện kết thúc Cycle (`GameClock.Instance`) và `SaveGame`.
+  - [ ] Xuất dữ liệu thống kê sinh tồn ra đĩa cục bộ (`%APPDATA%/Klei/OxygenNotIncluded/mods/data/telemetry.json`).
+  - [ ] Thu thập dữ liệu: Than, Nước, Dầu, Oxy, Thực phẩm, Áp suất trung bình, Nhiệt độ các vòm sinh thái.
+- [ ] **Bộ Lắng Nghe & Cảnh Báo Ngầm Electron (`TelemetryWatcher.ts`)**:
+  - [ ] Lắng nghe sự thay đổi file bằng `fs.watch` với giao thức Debounce chống ghi chồng.
+  - [ ] **Predictive Burn & Threat Engine**: Tính toán tốc độ tiêu thụ tài nguyên (Burn rate) và tự động phát hiện nguy cơ thảm họa (ví dụ: *Còn 4.2 chu kỳ là cạn Than*, *Nhiệt độ nước vượt 35°C*).
+  - [ ] **Telemetry HUD Bar & Toast Alerts**: Hiển thị thanh chỉ số thời gian thực ở đầu ứng dụng Electron và gửi thông báo pop-up cảnh báo.
+
+## Phase 10: Tự Động Hóa Bản Thiết Kế - Autonomous Blueprint Agent (Cấp 4.1 & 4.2)
+- [ ] **Chương Trình Quản Lý & Xuất/Nhập Blueprint (Blueprint Studio)**:
+  - [ ] Hỗ trợ chuẩn nén Blueprint ONI (`.blueprint` / JSON base64).
+  - [ ] Hiển thị sơ đồ 2D Blueprint trực quan trong Electron kèm danh sách vật liệu xây dựng tổng hợp.
+- [ ] **Mod C# Giao Tiếp 2 Chiều (`ONI-Agent-Bridge.dll`)**:
+  - [ ] Lắng nghe lệnh gửi từ Electron IPC (`%APPDATA%/oni-agent/blueprint_request.json`).
+  - [ ] **Geyser & Terrain Scanner**: Đọc thông số Mạch nước phun / Núi lửa khi người chơi chọn vào đối tượng trong game.
+  - [ ] **AI Blueprint Generator**: Sinh bản thiết kế Tamer tối ưu dựa trên khoảng trống địa hình thực tế xung quanh.
+  - [ ] **In-game Ghost Placement Engine**: Gọi API Harmony trong game để tự động đặt bóng công trình (Ghost Construction Plan) lên bản đồ.
+

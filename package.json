@@ -79,6 +79,7 @@
     "jsdom": "^29.1.1",
     "langchain": "^1.5.3",
     "lucide-react": "^1.25.0",
+    "mermaid": "^11.16.0",
     "ollama": "^0.6.3",
     "puppeteer-core": "^25.3.0",
     "react": "^19.2.7",

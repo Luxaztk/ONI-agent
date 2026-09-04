@@ -1,0 +1,351 @@
+.tabContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  color: var(--text-color, #e0e0e0);
+}
+
+.calcHeader {
+  display: flex;
+  gap: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 12px;
+  overflow-x: auto;
+}
+
+.calcSubTab {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ccc;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(0, 229, 255, 0.1);
+    color: #00e5ff;
+    border-color: rgba(0, 229, 255, 0.3);
+  }
+
+  &.active {
+    background: linear-gradient(135deg, rgba(0, 229, 255, 0.2), rgba(123, 97, 255, 0.2));
+    border-color: #00e5ff;
+    color: #fff;
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.3);
+  }
+}
+
+.calcBody {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+
+  @media (max-width: 850px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.inputCard, .resultCard {
+  background: rgba(20, 24, 33, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 20px;
+  backdrop-filter: blur(10px);
+
+  h3 {
+    margin-top: 0;
+    font-size: 1.1rem;
+    color: #00e5ff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+}
+
+.formGroup {
+  margin-bottom: 16px;
+
+  label {
+    display: block;
+    font-size: 0.9rem;
+    color: #aaa;
+    margin-bottom: 6px;
+  }
+
+  input[type="range"] {
+    width: 100%;
+    accent-color: #00e5ff;
+  }
+
+  input[type="number"], select {
+    width: 100%;
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    color: #fff;
+    font-size: 0.95rem;
+
+    &:focus {
+      outline: none;
+      border-color: #00e5ff;
+      box-shadow: 0 0 8px rgba(0, 229, 255, 0.3);
+    }
+  }
+}
+
+.valDisplay {
+  font-weight: bold;
+  color: #00e5ff;
+  float: right;
+}
+
+.statGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.statItem {
+  background: rgba(0, 0, 0, 0.25);
+  border-left: 3px solid #7b61ff;
+  padding: 10px 12px;
+  border-radius: 6px;
+
+  .statLabel {
+    font-size: 0.8rem;
+    color: #888;
+  }
+
+  .statVal {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #fff;
+    margin-top: 2px;
+  }
+
+  &.highlight {
+    border-left-color: #00e5ff;
+    .statVal {
+      color: #00e5ff;
+    }
+  }
+
+  &.warning {
+    border-left-color: #ff9800;
+    .statVal {
+      color: #ff9800;
+    }
+  }
+
+  &.success {
+    border-left-color: #4caf50;
+    .statVal {
+      color: #4caf50;
+    }
+  }
+}
+
+.actionRow {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.btnPrimary, .btnSecondary {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.btnPrimary {
+  background: linear-gradient(135deg, #00e5ff, #7b61ff);
+  color: #000;
+  border: none;
+
+  &:hover {
+    filter: brightness(1.2);
+    box-shadow: 0 0 16px rgba(0, 229, 255, 0.4);
+  }
+}
+
+.btnSecondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+.inlineRangeInput {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  input[type="range"] {
+    flex: 1;
+  }
+
+  .smallNumInput {
+    width: 70px !important;
+    text-align: center;
+    padding: 6px 8px !important;
+  }
+}
+
+.checkboxGroup {
+  margin-top: 16px;
+  background: rgba(0, 229, 255, 0.05);
+  border: 1px dashed rgba(0, 229, 255, 0.2);
+  border-radius: 8px;
+  padding: 12px;
+
+  .checkboxLabel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    color: #fff;
+    font-size: 0.9rem;
+
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #00e5ff;
+      cursor: pointer;
+    }
+
+    .iconSparkle {
+      color: #ffca28;
+    }
+  }
+
+  .subHint {
+    margin: 6px 0 0 24px;
+    font-size: 0.8rem;
+    color: #aaa;
+    line-height: 1.3;
+  }
+}
+
+.resourceSection, .envSection {
+  margin-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 14px;
+
+  h4 {
+    margin: 0 0 10px 0;
+    font-size: 0.9rem;
+    color: #00e5ff;
+    font-weight: 600;
+  }
+}
+
+.emptyResourceNotice {
+  font-size: 0.85rem;
+  color: #888;
+  font-style: italic;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  border-radius: 6px;
+}
+
+.resourceList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.resourceCardItem {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  .resName {
+    font-weight: 600;
+    color: #e0e0e0;
+    font-size: 0.9rem;
+  }
+
+  .resAmounts {
+    display: flex;
+    gap: 12px;
+    font-size: 0.85rem;
+
+    .resCycleVal {
+      color: #7b61ff;
+      strong {
+        color: #fff;
+      }
+    }
+
+    .res100CycleVal {
+      color: #4caf50;
+      background: rgba(76, 175, 80, 0.1);
+      padding: 2px 8px;
+      border-radius: 4px;
+      strong {
+        color: #81c784;
+      }
+    }
+  }
+}
+
+.envGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.envBadge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: #ccc;
+
+  svg {
+    color: #00e5ff;
+    flex-shrink: 0;
+  }
+
+  strong {
+    color: #fff;
+  }
+}
+
+.envNote {
+  margin: 10px 0 0 0;
+  font-size: 0.8rem;
+  color: #ffb74d;
+  background: rgba(255, 183, 77, 0.1);
+  padding: 8px 10px;
+  border-radius: 6px;
+  border-left: 3px solid #ffb74d;
+}

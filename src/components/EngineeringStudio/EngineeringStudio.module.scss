@@ -1,0 +1,115 @@
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modalContent {
+  width: 90vw;
+  max-width: 1200px;
+  height: 85vh;
+  background: #12161f;
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  border-radius: 16px;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 229, 255, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: rgba(20, 24, 33, 0.9);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+  .titleGroup {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    h2 {
+      margin: 0;
+      font-size: 1.25rem;
+      color: #fff;
+      font-weight: 700;
+      background: linear-gradient(135deg, #00e5ff, #7b61ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  }
+
+  .closeBtn {
+    background: transparent;
+    border: none;
+    color: #aaa;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+
+    &:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.1);
+    }
+  }
+}
+
+.navTabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 24px;
+  background: rgba(15, 18, 26, 0.8);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tabBtn {
+  background: transparent;
+  border: none;
+  color: #888;
+  padding: 10px 18px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  &.active {
+    color: #00e5ff;
+    background: rgba(0, 229, 255, 0.1);
+    border: 1px solid rgba(0, 229, 255, 0.2);
+  }
+}
+
+.bodyContent {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+}

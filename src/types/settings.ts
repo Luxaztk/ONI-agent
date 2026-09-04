@@ -12,6 +12,7 @@ export interface OllamaConfig {
 
 export interface AIConfig {
   provider: 'ollama' | 'azure';
+  offlineMode?: boolean;
   azure: AzureConfig;
   ollama: OllamaConfig;
 }

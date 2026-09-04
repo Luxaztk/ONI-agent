@@ -345,6 +345,27 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
             </div>
           )}
 
+          {/* Cellular / Offline Data Guard Section */}
+          <div className={styles.section}>
+            <span className={styles.label}>Bảo Vệ Dữ Liệu Di Động (Cellular Data Guard)</span>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontSize: '0.875rem', color: '#e2e8f0', background: 'rgba(255,255,255,0.03)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <input
+                type="checkbox"
+                style={{ width: '1.1rem', height: '1.1rem', accentColor: '#06b6d4', cursor: 'pointer' }}
+                checked={Boolean(config.offlineMode)}
+                onChange={(e) => setConfig({ ...config, offlineMode: e.target.checked })}
+              />
+              <div>
+                <div style={{ fontWeight: 600, color: config.offlineMode ? '#22d3ee' : '#f8fafc' }}>
+                  Bật Chế độ Tiết kiệm Mạng Di động (Offline Mode)
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.2rem' }}>
+                  Khóa 100% kết nối cào mạng ngoài. Ứng dụng chỉ truy xuất dữ liệu vector offline có sẵn trên máy.
+                </div>
+              </div>
+            </label>
+          </div>
+
           {/* Test connection & Save feedback status */}
           {testResult && (
             <div

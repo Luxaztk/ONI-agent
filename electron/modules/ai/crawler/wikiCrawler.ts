@@ -56,17 +56,57 @@ export const getWikiLinks = async (): Promise<string[]> => {
   return linksArray;
 };
 
+/**
+ * Math-Aware HTML Preprocessor:
+ * 1. Bóc tách thẻ MediaWiki Math (<math>, .mwe-math-element) thành mã LaTeX $formula$ chuẩn KaTeX.
+ * 2. Thay thế các hình ảnh math fallback bằng thuộc tính alt/title chứa công thức.
+ * 3. Chèn từ điển ký hiệu đơn vị nhiệt (Q, m, c, DTU, SHC, Delta T) nếu phát hiện trang có công thức nhiệt lạnh.
+ */
+export const preprocessMathContent = ($: cheerio.CheerioAPI): void => {
+  // Trích xuất mã LaTeX từ thẻ <annotation encoding="application/x-tex">
+  $('.mwe-math-element, .mwe-math-inline, .mwe-math-block, math').each((_, el) => {
+    const $el = $(el);
+    const latexAnnotation = $el.find('annotation[encoding="application/x-tex"]').text().trim();
+    const altText = $el.find('img').attr('alt') || $el.attr('alt') || '';
+    const formulaText = latexAnnotation || altText;
+
+    if (formulaText) {
+      const cleanFormula = formulaText.replace(/{\\displaystyle\s*/g, '').replace(/}$/g, '').trim();
+      $el.replaceWith(` $${cleanFormula}$ `);
+    }
+  });
+
+  // Chuyển đổi các hình ảnh ký hiệu toán đơn lẻ
+  $('img.mwe-math-fallback-image-inline, img.mwe-math-fallback-image-display').each((_, el) => {
+    const alt = $(el).attr('alt') || '';
+    if (alt) {
+      $(el).replaceWith(` $${alt.trim()}$ `);
+    }
+  });
+
+  // Bổ sung chú thích từ điển ký hiệu công thức nếu bài viết có đề cập tới công thức nhiệt
+  const bodyText = $('#mw-content-text').text() || '';
+  if (bodyText.includes('DTU') || bodyText.includes('Aquatuner') || bodyText.includes('Steam Turbine') || bodyText.includes('Specific Heat Capacity')) {
+    const mathLegend = `\n\n### Từ Điển Ký Hiệu & Đơn Vị Tính Toán ONI:\n- **$Q$**: Nhiệt lượng (Đơn vị: DTU hoặc kDTU, $1 \\text{ kDTU} = 1,000 \\text{ DTU}$)\n- **$m$**: Khối lượng chất lỏng/khí ($g$ hoặc $kg$)\n- **$c$**: Nhiệt dung riêng (Specific Heat Capacity - SHC, đơn vị: $\\text{DTU}/(g \\cdot ^\\circ\\text{C})$)\n- **$\\Delta T$**: Chênh lệch nhiệt độ ($^\\circ\\text{C}$)\n- **Công thức trao đổi nhiệt chuẩn ONI**: $Q = m \\cdot c \\cdot \\Delta T$\n`;
+    $('#mw-content-text').append(`<div class="oni-math-legend">${mathLegend}</div>`);
+  }
+};
+
 export const crawlWikiPage = async (url: string): Promise<Document[]> => {
-  console.log(`[WikiCrawler] Đang cào dữ liệu từ ${url}...`);
+  console.log(`[WikiCrawler] Đang cào dữ liệu Math-Aware từ ${url}...`);
   const response = await fetch(url);
   const html = await response.text();
   const $ = cheerio.load(html);
 
+  // Áp dụng Math-Aware Preprocessor
+  preprocessMathContent($);
+
   const title = $('#firstHeading').text().trim();
+  const processedHtml = $.html();
 
   return [
     new Document({
-      pageContent: html,
+      pageContent: processedHtml,
       metadata: { source: url, title, type: "wiki_guide" },
     }),
   ];

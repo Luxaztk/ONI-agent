@@ -1,0 +1,137 @@
+.mermaidContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.selectorBar {
+  display: flex;
+  gap: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 10px;
+}
+
+.selectorBtn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ccc;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+
+  &.active {
+    background: rgba(123, 97, 255, 0.25);
+    border-color: #7b61ff;
+    color: #fff;
+    font-weight: 600;
+  }
+}
+
+.codeBox {
+  background: #090c10;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 16px;
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: #58a6ff;
+  white-space: pre-wrap;
+  overflow-x: auto;
+  max-height: 360px;
+}
+
+.diagramMeta {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.toggleBtn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  padding: 4px 12px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #aaa;
+  border-radius: 5px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.18s;
+
+  &:hover {
+    background: rgba(255,255,255,0.14);
+    color: #fff;
+  }
+}
+
+.diagramWrapper {
+  width: 100%;
+  min-height: 280px;
+  background: #0b0f1a;
+  border: 1px solid rgba(0, 229, 255, 0.15);
+  border-radius: 10px;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.diagramOutput {
+  width: 100%;
+
+  svg {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+.renderError {
+  color: #ff9800;
+  font-size: 0.9rem;
+  width: 100%;
+
+  p { margin-bottom: 8px; }
+}
+
+.metaTag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: #00e5ff;
+  background: rgba(0, 229, 255, 0.08);
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.copyBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.15), rgba(123, 97, 255, 0.15));
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  color: #00e5ff;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(0, 229, 255, 0.25);
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.3);
+  }
+}
+
+.mermaidNotice {
+  font-size: 0.85rem;
+  color: #888;
+  font-style: italic;
+}

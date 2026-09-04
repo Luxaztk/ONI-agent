@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-import { Plus, Sun, Moon, MessageSquare, Trash2, RefreshCw, Settings } from 'lucide-react';
+import { Plus, Sun, Moon, MessageSquare, Trash2, RefreshCw, Settings, Cpu } from 'lucide-react';
 import styles from './Sidebar.module.scss';
 import { useTheme } from '../../context/ThemeContext';
 import { useChat } from '../../context/ChatContext';
 import SettingsModal from '../SettingsModal/SettingsModal';
+import EngineeringStudioModal from '../EngineeringStudio/EngineeringStudioModal';
 
 const Sidebar: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
-  const { sessions, currentSessionId, createNewSession, selectSession, deleteSession } = useChat();
+  const { sessions, currentSessionId, createNewSession, selectSession, deleteSession, sendMessage } = useChat();
   const [isChecking, setIsChecking] = useState(false);
   const [updateStatus, setUpdateStatus] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isStudioOpen, setIsStudioOpen] = useState(false);
 
   const handleCheckUpdate = async () => {
     if (isChecking) return;
@@ -37,6 +39,10 @@ const Sidebar: React.FC = () => {
         setTimeout(() => setUpdateStatus(''), 4000);
       }, 800);
     }
+  };
+
+  const handleSendStudioToChat = (text: string) => {
+    sendMessage(text);
   };
 
   return (
@@ -81,6 +87,21 @@ const Sidebar: React.FC = () => {
 
         <div className={styles.bottomSection}>
           <button
+            className={styles.themeToggle}
+            onClick={() => setIsStudioOpen(true)}
+            title="Mở ONI Engineering & Blueprint Studio V3"
+            style={{
+              background: 'linear-gradient(135deg, rgba(0, 229, 255, 0.15), rgba(123, 97, 255, 0.15))',
+              borderColor: 'rgba(0, 229, 255, 0.3)',
+              color: '#00e5ff',
+              fontWeight: 'bold'
+            }}
+          >
+            <Cpu size={18} />
+            <span>Engineering Studio V3</span>
+          </button>
+
+          <button
             className={`${styles.actionBtn} ${isChecking ? styles.checking : ''}`}
             onClick={handleCheckUpdate}
             disabled={isChecking}
@@ -107,8 +128,14 @@ const Sidebar: React.FC = () => {
       </div>
 
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      <EngineeringStudioModal
+        isOpen={isStudioOpen}
+        onClose={() => setIsStudioOpen(false)}
+        onSendToChat={handleSendStudioToChat}
+      />
     </>
   );
 };
 
 export default Sidebar;
+
